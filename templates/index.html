@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPU Scheduling Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<nav id="dotnav">
+  <a href="#page1" data-label="ALGORITHMS" class="active"></a>
+  <a href="#page2" data-label="INPUT &amp; RUN"></a>
+  <a href="#page3" data-label="TAT / WT"></a>
+  <a href="#page4" data-label="PROCESS TABLE"></a>
+</nav>
+
+<div id="scroller">
+
+  <!-- ============ PAGE 1 ============ -->
+  <section id="page1">
+    <div class="glass hero-glass">
+      <div class="kicker">OPERATING SYSTEMS &middot; PROCESS SCHEDULING</div>
+      <h1>CPU Scheduling Simulator</h1>
+      <p class="sub">Enter a set of processes, choose a scheduling policy, and watch the CPU timeline, waiting times and turnaround times come to life &mdash; all computed on a Flask + SQLite backend.</p>
+    </div>
+
+    <div class="algo-grid">
+      {% for key, label in algorithms.items() %}
+      <div class="glass algo-card">
+        <div class="algo-code">{{ key.upper() }}</div>
+        <h3>{{ label }}</h3>
+        <p class="algo-desc" data-algo="{{ key }}"></p>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="scrolldown">SCROLL TO BEGIN &darr;</div>
+  </section>
+
+  <!-- ============ PAGE 2 ============ -->
+  <section id="page2">
+    <div class="glass panel-wide">
+      <div class="section-head">
+        <div class="eyebrow">02 &mdash; PROCESS INPUT</div>
+        <h2>Build &amp; run your schedule</h2>
+      </div>
+
+      <div class="controls-row">
+        <div class="field">
+          <label>ALGORITHM</label>
+          <select id="algoSelect">
+            {% for key, label in algorithms.items() %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field qfield" id="quantumField">
+          <label>TIME QUANTUM</label>
+          <input type="number" id="quantumInput" min="1" step="1" value="2">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn" id="addRowBtn">+ Add Process</button>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>PROCESS</th><th>ARRIVAL TIME</th><th>BURST TIME</th>
+              <th id="colPriority">PRIORITY</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="processBody"></tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="generateBtn">Generate Schedule</button>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
+      <p class="hint" id="statusHint">Priority is used only for Priority Scheduling &middot; Quantum only for Round Robin.</p>
+    </div>
+
+    <div class="glass panel-wide" id="ganttSection" style="display:none;">
+      <div class="section-head small">
+        <div class="eyebrow">GANTT CHART</div>
+        <h3 id="ganttAlgoName">&mdash;</h3>
+      </div>
+      <div id="ganttChart"><div class="gantt-row" id="ganttRow"></div><div class="ruler" id="ganttRuler"></div></div>
+      <div class="gantt-legend" id="ganttLegend"></div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="avgTat">&mdash;</div><div class="lbl">AVG TURNAROUND</div></div>
+        <div class="stat"><div class="num" id="avgWt">&mdash;</div><div class="lbl">AVG WAITING</div></div>
+        <div class="stat"><div class="num" id="cpuUtil">&mdash;</div><div class="lbl">CPU UTILIZATION</div></div>
+        <div class="stat"><div class="num" id="throughput">&mdash;</div><div class="lbl">THROUGHPUT</div></div>
+      </div>
+
+      <h4 class="chart-title">Turnaround &amp; Waiting time by process</h4>
+      <svg id="barChart" width="100%" height="240" viewBox="0 0 480 240"></svg>
+      <div class="legend">
+        <span><i style="background:#59D9C4"></i>Turnaround Time</span>
+        <span><i style="background:#F2A65A"></i>Waiting Time</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PAGE 3 ============ -->
+  <section id="page3">
+    <div class="glass panel-wide">
+      <div class="section-head">
+        <div class="eyebrow">03 &mdash; RESULTS</div>
+        <h2>Turnaround &amp; waiting time per process</h2>
+      </div>
+      <div id="resultsEmpty" class="empty-note">No schedule generated yet &mdash; go to the input page and click "Generate Schedule".</div>
+      <div id="resultsContent" style="display:none;">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>PID</th><th>ARRIVAL</th><th>BURST</th><th>COMPLETION</th><th>TURNAROUND</th><th>WAITING</th></tr></thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PAGE 4 ============ -->
+  <section id="page4">
+    <div class="glass panel-wide">
+      <div class="section-head">
+        <div class="eyebrow">04 &mdash; PROCESS TABLE &amp; SYSTEM STATS</div>
+        <h2>Full process breakdown</h2>
+      </div>
+      <div id="tableEmpty" class="empty-note">No schedule generated yet &mdash; go to the input page and click "Generate Schedule".</div>
+      <div id="tableContent" style="display:none;">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>PID</th><th>BT</th><th>AT</th><th>PRIORITY</th><th>COMPLETION TIME</th></tr></thead>
+            <tbody id="fullTableBody"></tbody>
+          </table>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="num" id="totalTimeStat">&mdash;</div><div class="lbl">TOTAL CPU TIMELINE</div></div>
+          <div class="stat"><div class="num" id="busyTimeStat">&mdash;</div><div class="lbl">BUSY TIME</div></div>
+          <div class="stat"><div class="num" id="idleTimeStat">&mdash;</div><div class="lbl">IDLE TIME</div></div>
+          <div class="stat"><div class="num" id="cpuUtilStat">&mdash;</div><div class="lbl">CPU UTILIZATION %</div></div>
+        </div>
+      </div>
+
+      <div class="section-head small" style="margin-top:36px;">
+        <div class="eyebrow">FROM THE DATABASE</div>
+        <h3>Recent runs (SQLite)</h3>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>#</th><th>ALGORITHM</th><th>AVG TAT</th><th>AVG WT</th><th>CPU UTIL %</th><th>WHEN</th></tr></thead>
+          <tbody id="historyBody"><tr><td colspan="6" class="empty-note">Loading history&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
